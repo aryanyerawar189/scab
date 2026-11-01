@@ -119,6 +119,80 @@ export type Database = {
           },
         ]
       }
+      match_requests: {
+        Row: {
+          created_at: string
+          detour_km: number | null
+          drop_gap_km: number | null
+          expires_at: string
+          from_trip_id: string
+          from_user_id: string
+          id: string
+          responded_at: string | null
+          saving_percent: number | null
+          status: string
+          to_trip_id: string
+          to_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detour_km?: number | null
+          drop_gap_km?: number | null
+          expires_at: string
+          from_trip_id: string
+          from_user_id: string
+          id?: string
+          responded_at?: string | null
+          saving_percent?: number | null
+          status?: string
+          to_trip_id: string
+          to_user_id: string
+        }
+        Update: {
+          created_at?: string
+          detour_km?: number | null
+          drop_gap_km?: number | null
+          expires_at?: string
+          from_trip_id?: string
+          from_user_id?: string
+          id?: string
+          responded_at?: string | null
+          saving_percent?: number | null
+          status?: string
+          to_trip_id?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_requests_from_trip_id_fkey"
+            columns: ["from_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_requests_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_requests_to_trip_id_fkey"
+            columns: ["to_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_requests_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           accept_deadline: string
@@ -225,11 +299,14 @@ export type Database = {
           exit_minutes_checked: number
           exit_minutes_international_extra: number
           id: number
+          max_detour_km: number
           max_extra_minutes: number
           max_pickup_walk_m: number
           min_overlap_minutes: number
           min_saving_percent: number
           near_miss_max_minutes: number
+          request_minutes_live: number
+          request_minutes_scheduled: number
           road_factor: number
           stop_minutes: number
           walk_speed_kmph: number
@@ -241,11 +318,14 @@ export type Database = {
           exit_minutes_checked?: number
           exit_minutes_international_extra?: number
           id?: number
+          max_detour_km?: number
           max_extra_minutes?: number
           max_pickup_walk_m?: number
           min_overlap_minutes?: number
           min_saving_percent?: number
           near_miss_max_minutes?: number
+          request_minutes_live?: number
+          request_minutes_scheduled?: number
           road_factor?: number
           stop_minutes?: number
           walk_speed_kmph?: number
@@ -257,11 +337,14 @@ export type Database = {
           exit_minutes_checked?: number
           exit_minutes_international_extra?: number
           id?: number
+          max_detour_km?: number
           max_extra_minutes?: number
           max_pickup_walk_m?: number
           min_overlap_minutes?: number
           min_saving_percent?: number
           near_miss_max_minutes?: number
+          request_minutes_live?: number
+          request_minutes_scheduled?: number
           road_factor?: number
           stop_minutes?: number
           walk_speed_kmph?: number
@@ -451,6 +534,21 @@ export type Database = {
         }
         Relationships: []
       }
+      server_secrets: {
+        Row: {
+          name: string
+          sha256: string
+        }
+        Insert: {
+          name: string
+          sha256: string
+        }
+        Update: {
+          name?: string
+          sha256?: string
+        }
+        Relationships: []
+      }
       terminals: {
         Row: {
           active: boolean
@@ -509,6 +607,7 @@ export type Database = {
           id: string
           is_international: boolean
           landing_at: string | null
+          max_walk_m: number
           mode: string
           pickup_label: string
           pickup_location: unknown
@@ -541,6 +640,7 @@ export type Database = {
           id?: string
           is_international?: boolean
           landing_at?: string | null
+          max_walk_m?: number
           mode?: string
           pickup_label: string
           pickup_location: unknown
@@ -573,6 +673,7 @@ export type Database = {
           id?: string
           is_international?: boolean
           landing_at?: string | null
+          max_walk_m?: number
           mode?: string
           pickup_label?: string
           pickup_location?: unknown
@@ -618,6 +719,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_request: { Args: { p_request_id: string }; Returns: string }
       airport_at: {
         Args: { p_lat: number; p_lng: number }
         Returns: {
@@ -634,7 +736,7 @@ export type Database = {
       cancel_match: { Args: { p_match_id: string }; Returns: undefined }
       check_in: { Args: { p_trip_id: string }; Returns: string }
       create_match: {
-        Args: { p_trip_a: string; p_trip_b: string }
+        Args: { p_drop_gap_km?: number; p_trip_a: string; p_trip_b: string }
         Returns: string
       }
       delete_trip: { Args: { p_trip_id: string }; Returns: undefined }
@@ -656,6 +758,41 @@ export type Database = {
       }
       mark_landed: { Args: { p_trip_id: string }; Returns: undefined }
       mark_paid: { Args: { p_match_id: string }; Returns: undefined }
+      match_candidates: {
+        Args: {
+          p_detour_slack?: number
+          p_gaps?: Json
+          p_me: Database["public"]["Tables"]["trips"]["Row"]
+          p_near_miss?: boolean
+        }
+        Returns: {
+          detour_km: number
+          drop_gap_km: number
+          needed_wait: number
+          ready_from: string
+          ready_until: string
+          saving_percent: number
+          trip_id: string
+          walk_m: number
+          walker_trip_id: string
+        }[]
+      }
+      match_options: {
+        Args: { p_gaps?: Json; p_prefilter?: boolean; p_trip_id: string }
+        Returns: {
+          detour_km: number
+          drop_gap_km: number
+          i_walk: boolean
+          ready_from: string
+          received_expires_at: string
+          received_request_id: string
+          saving_percent: number
+          sent_expires_at: string
+          sent_request_id: string
+          trip_id: string
+          walk_m: number
+        }[]
+      }
       my_active_trip: {
         Args: { p_trip_id: string }
         Returns: {
@@ -674,6 +811,7 @@ export type Database = {
           id: string
           is_international: boolean
           landing_at: string | null
+          max_walk_m: number
           mode: string
           pickup_label: string
           pickup_location: unknown
@@ -702,8 +840,6 @@ export type Database = {
         Returns: {
           drop_gap_km: number
           extra_wait_minutes: number
-          my_estimated_share: number
-          my_solo_estimate: number
           other_ready_at: string
           saving_percent: number
         }[]
@@ -712,14 +848,28 @@ export type Database = {
         Args: { p_user_1: string; p_user_2: string }
         Returns: boolean
       }
+      pair_drop_points: {
+        Args: {
+          p_other_trip_ids: string[]
+          p_secret: string
+          p_trip_id: string
+        }
+        Returns: {
+          lat: number
+          lng: number
+          trip_id: string
+        }[]
+      }
       pair_estimate: {
         Args: {
           p_a: Database["public"]["Tables"]["trips"]["Row"]
           p_b: Database["public"]["Tables"]["trips"]["Row"]
+          p_drop_gap_km?: number
         }
         Returns: {
+          detour_km: number
+          drop_gap_km: number
           extra_minutes: number
-          min_saving: number
           saving_percent: number
           shared_fare: number
           solo_a: number
@@ -746,6 +896,14 @@ export type Database = {
         Returns: undefined
       }
       request_booker_swap: { Args: { p_match_id: string }; Returns: undefined }
+      request_match: {
+        Args: {
+          p_drop_gap_km?: number
+          p_other_trip_id: string
+          p_trip_id: string
+        }
+        Returns: string
+      }
       respond_booker_swap: {
         Args: { p_allow: boolean; p_match_id: string }
         Returns: undefined
@@ -758,6 +916,10 @@ export type Database = {
         Args: { p_accept: boolean; p_match_id: string }
         Returns: string
       }
+      respond_to_request: {
+        Args: { p_accept: boolean; p_request_id: string }
+        Returns: string
+      }
       rider_stats: {
         Args: { p_user_id: string }
         Returns: {
@@ -767,11 +929,11 @@ export type Database = {
         }[]
       }
       scab_housekeeping: { Args: never; Returns: undefined }
-      try_match: { Args: { p_trip_id: string }; Returns: string }
       update_fare: {
         Args: { p_fare: number; p_match_id: string; p_receipt_url?: string }
         Returns: undefined
       }
+      withdraw_request: { Args: { p_request_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
