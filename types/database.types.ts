@@ -505,6 +505,7 @@ export type Database = {
           drop_lng: number | null
           drop_location: unknown
           drop_place_id: string | null
+          hidden_at: string | null
           id: string
           is_international: boolean
           landing_at: string | null
@@ -536,6 +537,7 @@ export type Database = {
           drop_lng?: number | null
           drop_location: unknown
           drop_place_id?: string | null
+          hidden_at?: string | null
           id?: string
           is_international?: boolean
           landing_at?: string | null
@@ -567,6 +569,7 @@ export type Database = {
           drop_lng?: number | null
           drop_location?: unknown
           drop_place_id?: string | null
+          hidden_at?: string | null
           id?: string
           is_international?: boolean
           landing_at?: string | null
@@ -634,6 +637,7 @@ export type Database = {
         Args: { p_trip_a: string; p_trip_b: string }
         Returns: string
       }
+      delete_trip: { Args: { p_trip_id: string }; Returns: undefined }
       end_match: {
         Args: { p_by?: string; p_match_id: string; p_reason: string }
         Returns: undefined
@@ -666,6 +670,7 @@ export type Database = {
           drop_lng: number | null
           drop_location: unknown
           drop_place_id: string | null
+          hidden_at: string | null
           id: string
           is_international: boolean
           landing_at: string | null
