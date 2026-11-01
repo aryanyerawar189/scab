@@ -7,6 +7,8 @@ import { createLiveTrip } from '../actions'
 import PlaceSearch, { type Place } from '../place-search'
 import PickupField, { type Pickup } from '../pickup-field'
 import { Card, SubmitButton, Toggle, WaitChips } from '../form-controls'
+import { Icon } from '@/app/ui/icons'
+import { buttonClass } from '@/app/ui/kit'
 
 const DEFAULT_WAIT = 15
 
@@ -45,8 +47,9 @@ export default function LiveForm({ showWomenOnly }: { showWomenOnly: boolean }) 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
+        <p className="text-sm text-ink-2">We&apos;ll match you with someone leaving the same spot, heading your way.</p>
         <PickupField onChange={setPickup} />
         <PlaceSearch
           id="drop"
@@ -60,17 +63,15 @@ export default function LiveForm({ showWomenOnly }: { showWomenOnly: boolean }) 
         {editingWait ? (
           <WaitChips value={waitMinutes} onChange={setWaitMinutes} />
         ) : (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            ⏱ We&apos;ll look for up to <strong className="text-zinc-900 dark:text-zinc-100">{waitMinutes} min</strong>
-            {' · '}
-            <button
-              type="button"
-              onClick={() => setEditingWait(true)}
-              className="font-semibold text-amber-700 dark:text-amber-400 underline underline-offset-2"
-            >
-              change
+          <div className="flex items-center gap-3 h-14 pl-4 pr-2 rounded-lg bg-surface-2">
+            <Icon.Timer className="size-5 text-ink-2" />
+            <p className="flex-1 text-sm text-ink-2">
+              We&apos;ll look for up to <strong className="text-ink font-semibold">{waitMinutes} min</strong>
+            </p>
+            <button type="button" onClick={() => setEditingWait(true)} className={buttonClass({ variant: 'ghost', size: 'sm' })}>
+              Change
             </button>
-          </p>
+          </div>
         )}
 
         {showWomenOnly && (

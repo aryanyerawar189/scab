@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import PlaceSearch, { type Place } from './place-search'
-import { Segmented } from './form-controls'
+import { FieldNote, Segmented } from './form-controls'
+import { Icon } from '../ui/icons'
 
 type AirportTerminal = {
   airport_id: string
@@ -82,29 +83,24 @@ export default function PickupField({ onChange }: { onChange: (pickup: Pickup | 
         onChange={pickPlace}
       />
 
-      {detection.state === 'checking' && (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 -mt-1.5">Checking pickup…</p>
-      )}
+      {detection.state === 'checking' && <FieldNote>Checking pickup…</FieldNote>}
       {detection.state === 'error' && (
-        <p className="text-xs text-red-600 dark:text-red-400 -mt-1.5">
-          We couldn&apos;t check this pickup. Please pick it again.
-        </p>
+        <FieldNote tone="error">We couldn&apos;t check this pickup. Please pick it again.</FieldNote>
       )}
       {detection.state === 'address' && (
-        <p className="text-xs text-emerald-700 dark:text-emerald-400 -mt-1.5">📍 Pickup set</p>
+        <FieldNote tone="success" icon={<Icon.Check className="size-3.5" />}>Pickup set</FieldNote>
       )}
-
       {airport && airport.length === 1 && (
-        <p className="text-xs text-emerald-700 dark:text-emerald-400 -mt-1.5">
-          ✈️ {airport[0].airport_name} ({airport[0].iata})
-        </p>
+        <FieldNote tone="success" icon={<Icon.Plane className="size-3.5" />}>
+          {airport[0].airport_name} ({airport[0].iata})
+        </FieldNote>
       )}
       {airport && airport.length > 1 && (
         <Segmented
           label={`Which terminal? · ${airport[0].iata}`}
           value={terminalId}
           onChange={setTerminalId}
-          options={airport.map((t) => ({ value: t.terminal_id, label: `✈️ ${t.terminal_name}` }))}
+          options={airport.map((t) => ({ value: t.terminal_id, label: t.terminal_name }))}
         />
       )}
     </div>

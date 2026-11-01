@@ -29,8 +29,8 @@ export default async function LoginPage() {
 
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col justify-center items-center px-4">
-        <div className="w-10 h-10 border-2 border-zinc-300 border-t-amber-500 rounded-full animate-spin" />
+      <main className="min-h-dvh flex flex-col justify-center items-center px-4">
+        <div className="size-8 rounded-full border-2 border-line-strong border-t-ink animate-spin" />
       </main>
     }>
       <LoginForm />

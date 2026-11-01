@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { Icon } from './ui/icons'
+import { Spinner } from './ui/kit'
 
 export default function SignOutButton() {
   const router = useRouter()
@@ -24,9 +26,11 @@ export default function SignOutButton() {
     <button
       onClick={handleSignOut}
       disabled={loading}
-      className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800 dark:hover:bg-zinc-700/80 px-3 py-1.5 rounded-full transition-all disabled:opacity-50"
+      aria-label="Sign out"
+      title="Sign out"
+      className="size-10 rounded-full flex items-center justify-center text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors disabled:opacity-50"
     >
-      {loading ? 'Signing out...' : 'Sign out'}
+      {loading ? <Spinner /> : <Icon.LogOut className="size-[18px]" />}
     </button>
   )
 }

@@ -6,6 +6,8 @@ import { friendlyError } from '@/utils/friendly-error'
 import { formatRupees, formatTime } from '@/utils/format'
 import type { Trip } from '@/utils/trips'
 import { useToast } from '../toast'
+import { Icon } from '../ui/icons'
+import { buttonClass } from '../ui/kit'
 
 type NearMiss = {
   extra_wait_minutes: number
@@ -53,19 +55,24 @@ export default function NearMissOffer({ trip, onAccepted }: { trip: Trip; onAcce
   }
 
   return (
-    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50">
-      <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
-        A rider going {offer.drop_gap_km} km from your drop will be out at {formatTime(offer.other_ready_at)}.
-        Wait {offer.extra_wait_minutes} more min and pay ~{formatRupees(offer.my_estimated_share)} instead of{' '}
-        {formatRupees(offer.my_solo_estimate)}?
-      </p>
-      <button
-        onClick={accept}
-        disabled={busy}
-        className="mt-2 text-xs font-semibold px-3 py-2 rounded-full transition-all disabled:opacity-50 bg-amber-400 hover:bg-amber-500 text-zinc-950"
-      >
-        {busy ? 'Updating...' : 'Wait'}
-      </button>
+    <div className="p-4 rounded-lg bg-brand-soft border border-brand/40">
+      <div className="flex gap-3">
+        <span className="size-8 rounded-full bg-brand text-on-brand flex items-center justify-center">
+          <Icon.Hourglass className="size-4" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-ink">
+            Wait {offer.extra_wait_minutes} more min, pay {formatRupees(offer.my_estimated_share)}
+            <span className="font-normal text-ink-3 line-through ml-1.5">{formatRupees(offer.my_solo_estimate)}</span>
+          </p>
+          <p className="text-[13px] text-ink-2 mt-0.5 leading-snug">
+            A rider going {offer.drop_gap_km} km from your drop will be out at {formatTime(offer.other_ready_at)}.
+          </p>
+          <button onClick={accept} disabled={busy} className={buttonClass({ variant: 'dark', size: 'sm', className: 'mt-3' })}>
+            {busy ? 'Updating…' : `Wait ${offer.extra_wait_minutes} min`}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

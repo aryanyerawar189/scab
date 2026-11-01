@@ -8,6 +8,8 @@ import { createScheduledTrip } from '../actions'
 import PlaceSearch, { type Place } from '../place-search'
 import PickupField, { type Pickup } from '../pickup-field'
 import { Card, FieldLabel, Segmented, SubmitButton, Toggle, WaitChips, inputClass } from '../form-controls'
+import { Icon } from '@/app/ui/icons'
+import { buttonClass } from '@/app/ui/kit'
 
 type Saved = { pickup_label: string; ready_from: string; ready_until: string }
 
@@ -66,21 +68,18 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
 
   if (saved) {
     return (
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-center">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-2xl mb-4">
-          ✓
+      <div className="pt-6 text-center">
+        <div className="size-16 mx-auto rounded-full bg-success-soft text-success flex items-center justify-center mb-5">
+          <Icon.Check className="size-8" />
         </div>
-        <h2 className="text-lg font-bold mb-2">Ride scheduled</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+        <h2 className="text-2xl font-bold tracking-tight mb-2">Ride scheduled</h2>
+        <p className="text-[15px] text-ink-2 mb-8 max-w-xs mx-auto leading-relaxed">
           We&apos;ll look for co-riders leaving {saved.pickup_label} between{' '}
-          <strong className="text-zinc-900 dark:text-zinc-100">{formatTime(saved.ready_from)}</strong> and{' '}
-          <strong className="text-zinc-900 dark:text-zinc-100">{formatTime(saved.ready_until)}</strong>
+          <strong className="text-ink">{formatTime(saved.ready_from)}</strong> and{' '}
+          <strong className="text-ink">{formatTime(saved.ready_until)}</strong>
           {dayPhrase(saved.ready_from)}.
         </p>
-        <Link
-          href="/"
-          className="block w-full bg-amber-400 hover:bg-amber-500 text-zinc-950 font-bold py-4 px-4 rounded-2xl transition-all shadow-sm"
-        >
+        <Link href="/" className={buttonClass({ size: 'lg', block: true })}>
           Go to my trips
         </Link>
       </div>
@@ -88,7 +87,7 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
         <PickupField onChange={setPickup} />
 
@@ -123,8 +122,8 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
               value={bags}
               onChange={setBags}
               options={[
-                { value: 'cabin', label: '🎒 Cabin only' },
-                { value: 'checked', label: '🧳 Checked bags' },
+                { value: 'cabin', label: <><Icon.Briefcase className="size-4" /> Cabin only</> },
+                { value: 'checked', label: <><Icon.Luggage className="size-4" /> Checked bags</> },
               ]}
             />
 

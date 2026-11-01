@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
+/*
+ * SCab design tokens. Components use these semantic names (bg-surface, text-ink-2,
+ * bg-brand, …) instead of raw palette colours, so light/dark is decided here only.
+ *
+ *   canvas     page background
+ *   surface    cards, sheets, header
+ *   surface-2  inset fills (inputs, chips, route box)
+ *   line       hairline borders and dividers
+ *   ink        primary text · ink-2 secondary · ink-3 hints / placeholders
+ *   brand      black (white in dark mode): the one primary action per screen
+ *   success / danger / info   status colours, each with a -soft tint for backgrounds
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f3f3;
+  --line: #e8e8e8;
+  --line-strong: #cbcbcb;
+  --ink: #000000;
+  --ink-2: #545454;
+  --ink-3: #8e8e8e;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Monochrome: the primary action is black */
+  --brand: #000000;
+  --brand-strong: #282828;
+  --on-brand: #ffffff;
+  --brand-soft: #f3f3f3;
+  --brand-ink: #000000;
+
+  --success: #05944f;
+  --success-soft: #e6f2ed;
+  --danger: #e11900;
+  --danger-soft: #ffefed;
+  --info: #276ef1;
+  --info-soft: #eff3fe;
+
+  --shadow-color: 0 0 0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --canvas: #000000;
+    --surface: #141414;
+    --surface-2: #1f1f1f;
+    --line: #2a2a2a;
+    --line-strong: #4a4a4a;
+    --ink: #ffffff;
+    --ink-2: #afafaf;
+    --ink-3: #757575;
+
+    --brand: #ffffff;
+    --brand-strong: #e2e2e2;
+    --on-brand: #000000;
+    --brand-soft: #1f1f1f;
+    --brand-ink: #ffffff;
+
+    --success: #06c167;
+    --success-soft: #0d2a1c;
+    --danger: #ff5a45;
+    --danger-soft: #3a120d;
+    --info: #5b91f5;
+    --info-soft: #14203a;
+
+    --shadow-color: 0 0 0;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-on-brand: var(--on-brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-card: 0 0 #0000;
+  --shadow-pop: 0 4px 16px rgb(var(--shadow-color) / 0.16);
+
+  --animate-sheet-up: sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-toast-in: toast-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-pulse-ring: pulse-ring 2s ease-out infinite;
+
+  @keyframes sheet-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pulse-ring {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(2.25); opacity: 0; }
+  }
+  @keyframes toast-in {
+    from { transform: translateY(12px) scale(0.98); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'ss01', 'cv11';
+    text-rendering: optimizeLegibility;
+  }
+
+  /* One visible focus style everywhere (keyboard only) */
+  :focus-visible {
+    outline: 3px solid var(--info);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--brand);
+    color: var(--on-brand);
+  }
+
+  /* Native date/time pickers follow the theme */
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+    }
+  }
 }

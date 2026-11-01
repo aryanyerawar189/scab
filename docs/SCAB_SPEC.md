@@ -194,7 +194,7 @@ When the window ends with no match, the trip becomes **expired** and the rider s
 
 ### 8.5 Fare confirmation
 - The co-rider sees **"Riya booked for ₹900. Looks right?"** → **✓ Confirm** / **✗ Doesn't match**.
-- **Doesn't match** → booker uploads a receipt screenshot; the match is flagged.
+- **Doesn't match** → the match is flagged and the two riders sort it out in chat. (No receipt upload: too much effort for riders.)
 - If the booker later changes the fare, the co-rider must confirm again.
 
 ### 8.6 Fare split: everyone saves the same %

@@ -35,6 +35,7 @@ export default async function HomePage() {
     .from('trips')
     .select(TRIP_COLUMNS)
     .eq('user_id', user.id)
+    .is('hidden_at', null)
     .order('ready_from', { ascending: false })
     .limit(30)
 
@@ -43,53 +44,33 @@ export default async function HomePage() {
   const avatarUrl = profile?.avatar_url ?? user.user_metadata?.avatar_url ?? user.user_metadata?.picture
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800">
+    <div className="min-h-dvh flex flex-col">
+      <header className="sticky top-0 z-20 bg-canvas pt-[env(safe-area-inset-top)]">
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-400 text-zinc-950 flex items-center justify-center font-black text-sm shadow-sm">
-              🚕
-            </div>
-            <span className="font-extrabold text-lg tracking-tight">SCab</span>
+            <span className="font-bold text-2xl tracking-tight">SCab</span>
           </div>
-
-          {/* User Profile & Sign Out */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={firstName}
-                  className="w-8 h-8 rounded-full object-cover border border-zinc-200 dark:border-zinc-750"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-amber-400 text-zinc-950 font-bold flex items-center justify-center text-xs">
-                  {firstName.charAt(0)}
-                </div>
-              )}
-              <span className="text-sm font-semibold hidden xs:inline-block">
-                {firstName}
+          <div className="flex items-center gap-1">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="size-8 rounded-full object-cover ring-1 ring-line"
+              />
+            ) : (
+              <span className="size-8 rounded-full bg-surface-2 text-ink-2 font-semibold flex items-center justify-center text-xs">
+                {firstName.charAt(0)}
               </span>
-            </div>
+            )}
             <SignOutButton />
           </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-md mx-auto w-full px-4 py-6 flex flex-col justify-between">
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Hey, {firstName}! 👋
-          </h1>
-          <HomeTripsLoader userId={user.id} initialTrips={(trips ?? []) as Trip[]} />
-        </div>
-
-        {/* Footer tagline */}
-        <footer className="pt-10 pb-24 text-center text-xs text-zinc-400 dark:text-zinc-600">
-          SCab – Share a cab, split the fare
-        </footer>
+      <main className="flex-1 max-w-md mx-auto w-full px-4 pt-2 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+        <h1 className="mb-5 text-[28px] leading-tight font-bold tracking-tight">Hi, {firstName}</h1>
+        <HomeTripsLoader userId={user.id} initialTrips={(trips ?? []) as Trip[]} />
       </main>
     </div>
   )
