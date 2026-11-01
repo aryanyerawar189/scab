@@ -15,6 +15,8 @@ export default function HomeTrips({ userId, initialTrips }: { userId: string; in
   const [trips, setTrips] = useState(() => sortTrips(initialTrips))
   const [now, setNow] = useState(() => Date.now())
   const [highlightId, setHighlightId] = useState<string | null>(null)
+  // Requests waiting for my reply, per trip (no notifications yet, so home shows them)
+  const [incoming, setIncoming] = useState<Record<string, number>>({})
 
   const refetch = useCallback(async () => {
     const { data, error } = await supabase
@@ -25,6 +27,16 @@ export default function HomeTrips({ userId, initialTrips }: { userId: string; in
       .order('ready_from', { ascending: false })
       .limit(30)
     if (!error && data) setTrips(sortTrips(data as Trip[]))
+
+    const { data: requests } = await supabase
+      .from('match_requests')
+      .select('to_trip_id')
+      .eq('to_user_id', userId)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+    const counts: Record<string, number> = {}
+    for (const r of requests ?? []) counts[r.to_trip_id] = (counts[r.to_trip_id] ?? 0) + 1
+    setIncoming(counts)
   }, [supabase, userId])
 
   // Tick so time-based buttons ("Landed", "I'm out") appear on their own
@@ -40,9 +52,13 @@ export default function HomeTrips({ userId, initialTrips }: { userId: string; in
 
     supabase.realtime.setAuth().then(() => {
       if (stopped) return
+      refetch() // also loads incoming requests
       channel = supabase
         .channel(`my-trips-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trips', filter: `user_id=eq.${userId}` }, () =>
+          refetch()
+        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'match_requests', filter: `to_user_id=eq.${userId}` }, () =>
           refetch()
         )
         .subscribe()
@@ -85,6 +101,7 @@ export default function HomeTrips({ userId, initialTrips }: { userId: string; in
       highlighted={trip.id === highlightId}
       onChanged={refetch}
       onDeleted={() => removeTrip(trip.id)}
+      incomingRequests={incoming[trip.id] ?? 0}
     />
   )
 

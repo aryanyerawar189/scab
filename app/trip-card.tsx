@@ -31,12 +31,14 @@ export default function TripCard({
   highlighted,
   onChanged,
   onDeleted,
+  incomingRequests,
 }: {
   trip: Trip
   now: number
   highlighted: boolean
   onChanged: () => void
   onDeleted: () => void
+  incomingRequests: number
 }) {
   const toast = useToast()
   const confirm = useConfirm()
@@ -182,6 +184,26 @@ export default function TripCard({
           )}
           {active && <span className="text-xs text-ink-3 tabular-nums">until {formatTime(trip.ready_until)}</span>}
         </div>
+
+        {/* Someone asked to share: the one thing on home that needs a reply */}
+        {trip.status === 'open' && incomingRequests > 0 && (
+          <Link
+            href={`/trips/${trip.id}`}
+            className="mt-3 ml-15 flex items-center gap-3 p-3 rounded-lg bg-ink text-canvas"
+          >
+            <Icon.Users className="size-5" />
+            <span className="flex-1 text-sm font-semibold">
+              {incomingRequests === 1 ? 'A rider wants to share' : `${incomingRequests} riders want to share`}
+            </span>
+            <span className="text-sm opacity-80">Reply</span>
+            <Icon.ChevronRight className="size-4" />
+          </Link>
+        )}
+        {trip.status === 'open' && incomingRequests === 0 && (
+          <Link href={`/trips/${trip.id}`} className="mt-2 ml-15 inline-flex items-center gap-1 text-sm font-medium underline underline-offset-4">
+            See co-riders <Icon.ChevronRight className="size-4" />
+          </Link>
+        )}
 
         {/* Scheduled: you're out / ready */}
         {scheduled && active && isOut && (

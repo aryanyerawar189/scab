@@ -1,20 +1,19 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/toast'
-import { dayPhrase, formatTime, nextHalfHour, toDateValue, toTimeValue } from '@/utils/format'
+import { nextHalfHour, toDateValue, toTimeValue } from '@/utils/format'
 import { createScheduledTrip } from '../actions'
 import PlaceSearch, { type Place } from '../place-search'
 import PickupField, { type Pickup } from '../pickup-field'
-import { Card, FieldLabel, Segmented, SubmitButton, Toggle, WaitChips, inputClass } from '../form-controls'
+import { Card, FieldLabel, Segmented, SubmitButton, Toggle, WaitChips, WalkChips, inputClass } from '../form-controls'
+import { DEFAULT_WALK_M } from '@/utils/trips'
 import { Icon } from '@/app/ui/icons'
-import { buttonClass } from '@/app/ui/kit'
-
-type Saved = { pickup_label: string; ready_from: string; ready_until: string }
 
 export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) {
   const toast = useToast()
+  const router = useRouter()
   const [pickup, setPickup] = useState<Pickup | null>(null)
   // This form only renders in the browser (see trip-form-loader), so these
   // defaults use the rider's local clock
@@ -27,9 +26,8 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
   const [drop, setDrop] = useState<Place | null>(null)
   const [waitMinutes, setWaitMinutes] = useState(20)
   const [womenOnly, setWomenOnly] = useState(false)
-  const [askFirst, setAskFirst] = useState(true)
+  const [maxWalkM, setMaxWalkM] = useState<number>(DEFAULT_WALK_M)
   const [submitting, startSubmit] = useTransition()
-  const [saved, setSaved] = useState<Saved | null>(null)
 
   // Airport pickups ask for the landing time (+ bags, international); addresses for when you leave
   const airport = Boolean(pickup?.terminalId)
@@ -58,32 +56,12 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
         dropLng: drop.lng,
         dropPlaceId: drop.placeId,
         waitMinutes,
+        maxWalkM,
         womenOnly: showWomenOnly && womenOnly,
-        askBeforeConfirming: askFirst,
       })
       if (!result.ok) return toast(result.error)
-      setSaved(result.trip)
+      router.push(`/trips/${result.trip.id}`)
     })
-  }
-
-  if (saved) {
-    return (
-      <div className="pt-6 text-center">
-        <div className="size-16 mx-auto rounded-full bg-success-soft text-success flex items-center justify-center mb-5">
-          <Icon.Check className="size-8" />
-        </div>
-        <h2 className="text-2xl font-bold tracking-tight mb-2">Ride scheduled</h2>
-        <p className="text-[15px] text-ink-2 mb-8 max-w-xs mx-auto leading-relaxed">
-          We&apos;ll look for co-riders leaving {saved.pickup_label} between{' '}
-          <strong className="text-ink">{formatTime(saved.ready_from)}</strong> and{' '}
-          <strong className="text-ink">{formatTime(saved.ready_until)}</strong>
-          {dayPhrase(saved.ready_from)}.
-        </p>
-        <Link href="/" className={buttonClass({ size: 'lg', block: true })}>
-          Go to my trips
-        </Link>
-      </div>
-    )
   }
 
   return (
@@ -147,19 +125,14 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
           onChange={setDrop}
         />
         <WaitChips value={waitMinutes} onChange={setWaitMinutes} />
+        {pickup && !pickup.terminalId && <WalkChips value={maxWalkM} onChange={setMaxWalkM} />}
         {showWomenOnly && (
           <Toggle label="Women only" hint="Only match me with women" checked={womenOnly} onChange={setWomenOnly} />
         )}
-        <Toggle
-          label="Ask me before confirming a co-rider"
-          hint={askFirst ? "You'll get one tap to Accept" : 'Good matches are confirmed automatically'}
-          checked={askFirst}
-          onChange={setAskFirst}
-        />
       </Card>
 
-      <SubmitButton busy={submitting} disabled={!pickup || !drop} busyText="Scheduling...">
-        Find co-rider
+      <SubmitButton busy={submitting} disabled={!pickup || !drop} busyText="Posting your ride…">
+        Post ride & see co-riders
       </SubmitButton>
     </form>
   )

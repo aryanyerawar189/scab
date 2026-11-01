@@ -4,14 +4,15 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { friendlyError } from '@/utils/friendly-error'
-import { dayPhrase, formatRupees, formatTime } from '@/utils/format'
+import { dayPhrase, formatTime } from '@/utils/format'
 import { TRIP_COLUMNS, type Trip, uberSoloLink } from '@/utils/trips'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/toast'
 import { useConfirm } from '@/app/ui/confirm'
 import { Icon } from '@/app/ui/icons'
-import { Badge, Card, RouteLine, buttonClass } from '@/app/ui/kit'
+import { Card, RouteLine, buttonClass } from '@/app/ui/kit'
 import NearMissOffer from '../near-miss-offer'
+import MatchOptions from '../match-options'
 
 type MyMatch = {
   match_id: string
@@ -143,9 +144,9 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
 
   const cancel = async () => {
     const ok = await confirm({
-      title: 'Stop looking for a co-rider?',
-      body: 'Your ride will be cancelled.',
-      confirmLabel: 'Stop looking',
+      title: 'Cancel this ride?',
+      body: "We'll stop looking and withdraw any request you sent.",
+      confirmLabel: 'Cancel ride',
       destructive: true,
     })
     if (!ok) return
@@ -214,71 +215,60 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
   const readyFrom = Date.parse(trip.ready_from)
   const readyUntil = Date.parse(trip.ready_until)
 
-  // ---------- Looking ----------
+  // ---------- Looking: posted, choosing a co-rider ----------
   // (1 min of slack: a live trip starts "now" by the server's clock, which may be ahead of the phone's)
-  if (trip.status === 'open' && now < readyFrom - 60_000) {
-    return (
-      <div className="space-y-4">
-        <Screen icon={<Icon.Calendar className="size-7" />} tone="brand" title="Ride scheduled">
-          <p>
-            We&apos;ll look for co-riders between <strong className="text-ink">{formatTime(trip.ready_from)}</strong> and{' '}
-            <strong className="text-ink">{formatTime(trip.ready_until)}</strong>
-            {dayPhrase(trip.ready_from)}.
-          </p>
-        </Screen>
-        <RouteCard trip={trip} />
-        <div className="space-y-2 pt-2">
-          <Link href="/" className={primaryButton}>
-            Back to my trips
-          </Link>
-          <button onClick={cancel} disabled={busy !== null} className={secondaryButton}>
-            {busy === 'cancel' ? 'Cancelling…' : 'Cancel ride'}
-          </button>
-          {deleteButton}
-        </div>
-      </div>
-    )
-  }
-
   if (trip.status === 'open') {
+    const started = now >= readyFrom - 60_000
     const total = Math.max(1, readyUntil - readyFrom)
     const left = Math.max(0, readyUntil - now)
     return (
-      <div className="space-y-4">
-        <Card className="p-6 text-center">
-          {/* Pulse rings start at the car's size and grow to the box edge, so nothing clips */}
-          <div className="relative size-36 mx-auto mb-4 flex items-center justify-center">
-            <span className="absolute size-16 rounded-full bg-brand/20 animate-pulse-ring" />
-            <span className="absolute size-16 rounded-full bg-brand/20 animate-pulse-ring [animation-delay:1s]" />
-            <span className="relative size-16 rounded-full bg-brand text-on-brand flex items-center justify-center">
-              <Icon.Car className="size-7" />
+      <div className="space-y-6">
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <span className="relative size-12 flex items-center justify-center">
+              {started && <span className="absolute inset-0 rounded-full bg-brand/20 animate-pulse-ring" />}
+              <span className="relative size-12 rounded-full bg-brand text-on-brand flex items-center justify-center">
+                {started ? <Icon.Car className="size-6" /> : <Icon.Calendar className="size-6" />}
+              </span>
             </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold">{started ? 'Your ride is posted' : 'Ride scheduled'}</p>
+              <p className="text-sm text-ink-2 tabular-nums">
+                {started ? (
+                  <>Looking until {formatTime(trip.ready_until)} · {countdown(left)} left</>
+                ) : (
+                  <>
+                    Ready {formatTime(trip.ready_from)} – {formatTime(trip.ready_until)}
+                    {dayPhrase(trip.ready_from)}
+                  </>
+                )}
+              </p>
+            </div>
           </div>
-          <h2 className="text-xl font-bold tracking-tight">Looking for a co-rider…</h2>
-          <p className="text-sm text-ink-2 mt-1">Someone leaving with you, heading your way.</p>
-
-          <div className="mt-6">
-            <div className="text-4xl font-bold tabular-nums tracking-tight">{countdown(left)}</div>
-            <div className="mt-3 h-1.5 rounded-full bg-surface-2 overflow-hidden">
+          {started && (
+            <div className="mt-4 h-1 rounded-full bg-surface-2 overflow-hidden">
               <div
                 className="h-full bg-ink transition-[width] duration-1000 ease-linear rounded-full"
                 style={{ width: `${(left / total) * 100}%` }}
               />
             </div>
-            <p className="text-[13px] text-ink-3 mt-2">Searching until {formatTime(trip.ready_until)}</p>
-          </div>
+          )}
         </Card>
 
+        <MatchOptions trip={trip} userId={userId} onMatched={refetch} />
         <NearMissOffer trip={trip} onAccepted={refetch} />
         <RouteCard trip={trip} />
 
-        <div className="space-y-2 pt-2">
-          <button onClick={bookSoloNow} disabled={busy !== null} className={secondaryButton}>
-            {busy === 'solo' ? 'Opening Uber…' : 'Book solo on Uber instead'}
-          </button>
+        <div className="space-y-2">
+          {started && (
+            <button onClick={bookSoloNow} disabled={busy !== null} className={secondaryButton}>
+              {busy === 'solo' ? 'Opening Uber…' : 'Book solo on Uber instead'}
+            </button>
+          )}
           <button onClick={cancel} disabled={busy !== null} className={`${quietButton} hover:text-danger`}>
-            {busy === 'cancel' ? 'Cancelling…' : 'Cancel search'}
+            {busy === 'cancel' ? 'Cancelling…' : 'Cancel ride'}
           </button>
+          {!started && deleteButton}
         </div>
       </div>
     )
@@ -297,16 +287,12 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
     const m = match.matches
     const deal = (
       <Card className="divide-y divide-line">
-        {match.estimated_share != null && m.saving_percent != null && (
+        {m.saving_percent != null && (
           <div className="p-4 flex items-center gap-3">
-            <span className="size-10 rounded-xl bg-success-soft text-success flex items-center justify-center">
+            <span className="size-10 rounded-lg bg-success-soft text-success flex items-center justify-center">
               <Icon.Rupee className="size-5" />
             </span>
-            <div className="flex-1">
-              <p className="text-[13px] text-ink-3">You pay about</p>
-              <p className="text-xl font-bold tabular-nums tracking-tight">{formatRupees(match.estimated_share)}</p>
-            </div>
-            <Badge tone="success">Save {Math.round(m.saving_percent)}%</Badge>
+            <p className="flex-1 text-xl font-bold tracking-tight">You may save up to {Math.round(m.saving_percent)}%</p>
           </div>
         )}
         {m.meeting_point && (

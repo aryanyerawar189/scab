@@ -6,7 +6,8 @@ import { useToast } from '@/app/toast'
 import { createLiveTrip } from '../actions'
 import PlaceSearch, { type Place } from '../place-search'
 import PickupField, { type Pickup } from '../pickup-field'
-import { Card, SubmitButton, Toggle, WaitChips } from '../form-controls'
+import { Card, SubmitButton, Toggle, WaitChips, WalkChips } from '../form-controls'
+import { DEFAULT_WALK_M } from '@/utils/trips'
 import { Icon } from '@/app/ui/icons'
 import { buttonClass } from '@/app/ui/kit'
 
@@ -19,6 +20,7 @@ export default function LiveForm({ showWomenOnly }: { showWomenOnly: boolean }) 
   const [drop, setDrop] = useState<Place | null>(null)
   const [waitMinutes, setWaitMinutes] = useState(DEFAULT_WAIT)
   const [editingWait, setEditingWait] = useState(false)
+  const [maxWalkM, setMaxWalkM] = useState<number>(DEFAULT_WALK_M)
   const [womenOnly, setWomenOnly] = useState(false)
   const [submitting, startSubmit] = useTransition()
 
@@ -39,6 +41,7 @@ export default function LiveForm({ showWomenOnly }: { showWomenOnly: boolean }) 
         dropLng: drop.lng,
         dropPlaceId: drop.placeId,
         waitMinutes,
+        maxWalkM,
         womenOnly: showWomenOnly && womenOnly,
       })
       if (!result.ok) return toast(result.error)
@@ -49,7 +52,7 @@ export default function LiveForm({ showWomenOnly }: { showWomenOnly: boolean }) 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
-        <p className="text-sm text-ink-2">We&apos;ll match you with someone leaving the same spot, heading your way.</p>
+        <p className="text-sm text-ink-2">Post your ride to see riders leaving the same spot, heading your way.</p>
         <PickupField onChange={setPickup} />
         <PlaceSearch
           id="drop"
@@ -74,13 +77,15 @@ export default function LiveForm({ showWomenOnly }: { showWomenOnly: boolean }) 
           </div>
         )}
 
+        {pickup && !pickup.terminalId && <WalkChips value={maxWalkM} onChange={setMaxWalkM} />}
+
         {showWomenOnly && (
           <Toggle label="Women only" hint="Only match me with women" checked={womenOnly} onChange={setWomenOnly} />
         )}
       </Card>
 
-      <SubmitButton busy={submitting} disabled={!pickup || !drop} busyText="Posting your trip...">
-        Find co-rider
+      <SubmitButton busy={submitting} disabled={!pickup || !drop} busyText="Posting your ride…">
+        Post ride & see co-riders
       </SubmitButton>
     </form>
   )

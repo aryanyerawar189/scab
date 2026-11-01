@@ -1,6 +1,6 @@
 'use client'
 
-import { WAIT_OPTIONS } from '@/utils/trips'
+import { WAIT_OPTIONS, WALK_OPTIONS, formatWalk } from '@/utils/trips'
 import { Spinner, buttonClass } from '../ui/kit'
 
 export const inputClass =
@@ -61,6 +61,21 @@ export function WaitChips({ value, onChange }: { value: number; onChange: (v: nu
       onChange={onChange}
       options={WAIT_OPTIONS.map((m) => ({ value: m, label: `${m} min` }))}
     />
+  )
+}
+
+// Address pickups: how far the rider will walk to a co-rider's pickup
+export function WalkChips({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <Segmented
+        label="How far can you walk to meet?"
+        value={value}
+        onChange={onChange}
+        options={WALK_OPTIONS.map((m) => ({ value: m, label: formatWalk(m) }))}
+      />
+      <p className="mt-2 text-sm text-ink-2">Walking further shows you more co-riders.</p>
+    </div>
   )
 }
 

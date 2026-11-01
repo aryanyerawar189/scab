@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { friendlyError } from '@/utils/friendly-error'
-import { formatRupees, formatTime } from '@/utils/format'
+import { formatTime } from '@/utils/format'
 import type { Trip } from '@/utils/trips'
 import { useToast } from '../toast'
 import { Icon } from '../ui/icons'
@@ -13,8 +13,6 @@ type NearMiss = {
   extra_wait_minutes: number
   other_ready_at: string
   drop_gap_km: number
-  my_estimated_share: number
-  my_solo_estimate: number
   saving_percent: number
 }
 
@@ -62,11 +60,10 @@ export default function NearMissOffer({ trip, onAccepted }: { trip: Trip; onAcce
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-ink">
-            Wait {offer.extra_wait_minutes} more min, pay {formatRupees(offer.my_estimated_share)}
-            <span className="font-normal text-ink-3 line-through ml-1.5">{formatRupees(offer.my_solo_estimate)}</span>
+            Wait {offer.extra_wait_minutes} more min and you may save up to {Math.round(offer.saving_percent)}%
           </p>
           <p className="text-[13px] text-ink-2 mt-0.5 leading-snug">
-            A rider going {offer.drop_gap_km} km from your drop will be out at {formatTime(offer.other_ready_at)}.
+            A rider going {offer.drop_gap_km} km from your drop will be ready at {formatTime(offer.other_ready_at)}.
           </p>
           <button onClick={accept} disabled={busy} className={buttonClass({ variant: 'dark', size: 'sm', className: 'mt-3' })}>
             {busy ? 'Updating…' : `Wait ${offer.extra_wait_minutes} min`}
