@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   experimental: {
     turbopackPluginRuntimeStrategy: "forceWorkerThreads",
+    agentUpgrade: "security",
   },
   turbopack: {
     rules: {
