@@ -23,6 +23,13 @@ export const TRIP_COLUMNS =
 
 export const WAIT_OPTIONS = [10, 15, 20, 30] as const
 
+// Address pickups: how far the rider will walk to meet a co-rider (metres)
+export const WALK_OPTIONS = [0, 250, 500, 1000, 2000] as const
+export const DEFAULT_WALK_M = 500
+
+// "No", "250 m", "1 km"
+export const formatWalk = (m: number) => (m === 0 ? 'No' : m >= 1000 ? `${m / 1000} km` : `${m} m`)
+
 export const isActive = (t: Trip) => t.status === 'open' || t.status === 'matched'
 
 export const isAirport = (t: Trip) => t.terminal_id != null

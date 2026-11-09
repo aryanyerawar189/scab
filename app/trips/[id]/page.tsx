@@ -27,6 +27,7 @@ export default async function TripPage({ params }: PageProps<'/trips/[id]'>) {
     .select(TRIP_COLUMNS)
     .eq('id', id)
     .eq('user_id', user.id)
+    .is('hidden_at', null)
     .maybeSingle()
 
   if (!trip) notFound()

@@ -7,7 +7,7 @@ const TripForm = dynamic(() => import('./trip-form'), {
   ssr: false,
   loading: () => (
     <div className="flex justify-center py-16">
-      <div className="w-8 h-8 border-2 border-zinc-300 border-t-amber-500 rounded-full animate-spin" />
+      <div className="size-8 rounded-full border-2 border-line-strong border-t-ink animate-spin" />
     </div>
   ),
 })

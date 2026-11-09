@@ -7,8 +7,12 @@ import type { Trip } from '@/utils/trips'
 const HomeTrips = dynamic(() => import('./home-trips'), {
   ssr: false,
   loading: () => (
-    <div className="flex justify-center py-16">
-      <div className="w-8 h-8 border-2 border-zinc-300 border-t-amber-500 rounded-full animate-spin" />
+    <div className="space-y-3" aria-busy="true">
+      <div className="h-14 rounded-full bg-surface-2 animate-pulse" />
+      <div className="grid grid-cols-2 gap-3 pt-14">
+        <div className="h-24 rounded-xl bg-surface-2 animate-pulse" />
+        <div className="h-24 rounded-xl bg-surface-2 animate-pulse" />
+      </div>
     </div>
   ),
 })

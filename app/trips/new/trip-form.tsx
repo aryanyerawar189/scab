@@ -1,18 +1,19 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/toast'
-import { dayPhrase, formatTime, nextHalfHour, toDateValue, toTimeValue } from '@/utils/format'
+import { nextHalfHour, toDateValue, toTimeValue } from '@/utils/format'
 import { createScheduledTrip } from '../actions'
 import PlaceSearch, { type Place } from '../place-search'
 import PickupField, { type Pickup } from '../pickup-field'
-import { Card, FieldLabel, Segmented, SubmitButton, Toggle, WaitChips, inputClass } from '../form-controls'
-
-type Saved = { pickup_label: string; ready_from: string; ready_until: string }
+import { Card, FieldLabel, Segmented, SubmitButton, Toggle, WaitChips, WalkChips, inputClass } from '../form-controls'
+import { DEFAULT_WALK_M } from '@/utils/trips'
+import { Icon } from '@/app/ui/icons'
 
 export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) {
   const toast = useToast()
+  const router = useRouter()
   const [pickup, setPickup] = useState<Pickup | null>(null)
   // This form only renders in the browser (see trip-form-loader), so these
   // defaults use the rider's local clock
@@ -25,9 +26,8 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
   const [drop, setDrop] = useState<Place | null>(null)
   const [waitMinutes, setWaitMinutes] = useState(20)
   const [womenOnly, setWomenOnly] = useState(false)
-  const [askFirst, setAskFirst] = useState(true)
+  const [maxWalkM, setMaxWalkM] = useState<number>(DEFAULT_WALK_M)
   const [submitting, startSubmit] = useTransition()
-  const [saved, setSaved] = useState<Saved | null>(null)
 
   // Airport pickups ask for the landing time (+ bags, international); addresses for when you leave
   const airport = Boolean(pickup?.terminalId)
@@ -56,39 +56,16 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
         dropLng: drop.lng,
         dropPlaceId: drop.placeId,
         waitMinutes,
+        maxWalkM,
         womenOnly: showWomenOnly && womenOnly,
-        askBeforeConfirming: askFirst,
       })
       if (!result.ok) return toast(result.error)
-      setSaved(result.trip)
+      router.push(`/trips/${result.trip.id}`)
     })
   }
 
-  if (saved) {
-    return (
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-center">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center text-2xl mb-4">
-          ✓
-        </div>
-        <h2 className="text-lg font-bold mb-2">Ride scheduled</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
-          We&apos;ll look for co-riders leaving {saved.pickup_label} between{' '}
-          <strong className="text-zinc-900 dark:text-zinc-100">{formatTime(saved.ready_from)}</strong> and{' '}
-          <strong className="text-zinc-900 dark:text-zinc-100">{formatTime(saved.ready_until)}</strong>
-          {dayPhrase(saved.ready_from)}.
-        </p>
-        <Link
-          href="/"
-          className="block w-full bg-amber-400 hover:bg-amber-500 text-zinc-950 font-bold py-4 px-4 rounded-2xl transition-all shadow-sm"
-        >
-          Go to my trips
-        </Link>
-      </div>
-    )
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
         <PickupField onChange={setPickup} />
 
@@ -123,8 +100,8 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
               value={bags}
               onChange={setBags}
               options={[
-                { value: 'cabin', label: '🎒 Cabin only' },
-                { value: 'checked', label: '🧳 Checked bags' },
+                { value: 'cabin', label: <><Icon.Briefcase className="size-4" /> Cabin only</> },
+                { value: 'checked', label: <><Icon.Luggage className="size-4" /> Checked bags</> },
               ]}
             />
 
@@ -148,19 +125,14 @@ export default function TripForm({ showWomenOnly }: { showWomenOnly: boolean }) 
           onChange={setDrop}
         />
         <WaitChips value={waitMinutes} onChange={setWaitMinutes} />
+        {pickup && !pickup.terminalId && <WalkChips value={maxWalkM} onChange={setMaxWalkM} />}
         {showWomenOnly && (
           <Toggle label="Women only" hint="Only match me with women" checked={womenOnly} onChange={setWomenOnly} />
         )}
-        <Toggle
-          label="Ask me before confirming a co-rider"
-          hint={askFirst ? "You'll get one tap to Accept" : 'Good matches are confirmed automatically'}
-          checked={askFirst}
-          onChange={setAskFirst}
-        />
       </Card>
 
-      <SubmitButton busy={submitting} disabled={!pickup || !drop} busyText="Scheduling...">
-        Find co-rider
+      <SubmitButton busy={submitting} disabled={!pickup || !drop} busyText="Posting your ride…">
+        Post ride & see co-riders
       </SubmitButton>
     </form>
   )

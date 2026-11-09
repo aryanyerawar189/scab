@@ -4,10 +4,15 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { friendlyError } from '@/utils/friendly-error'
-import { dayPhrase, formatRupees, formatTime } from '@/utils/format'
+import { dayPhrase, formatTime } from '@/utils/format'
 import { TRIP_COLUMNS, type Trip, uberSoloLink } from '@/utils/trips'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/toast'
+import { useConfirm } from '@/app/ui/confirm'
+import { Icon } from '@/app/ui/icons'
+import { Card, RouteLine, buttonClass } from '@/app/ui/kit'
 import NearMissOffer from '../near-miss-offer'
+import MatchOptions from '../match-options'
 
 type MyMatch = {
   match_id: string
@@ -23,10 +28,9 @@ type MyMatch = {
   }
 }
 
-const primaryButton =
-  'block w-full text-center bg-amber-400 hover:bg-amber-500 text-zinc-950 font-bold py-4 px-4 rounded-2xl transition-all shadow-sm disabled:opacity-50'
-const secondaryButton =
-  'block w-full text-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-semibold py-3.5 px-4 rounded-2xl transition-all disabled:opacity-50'
+const primaryButton = buttonClass({ size: 'lg', block: true })
+const secondaryButton = buttonClass({ variant: 'secondary', size: 'lg', block: true })
+const quietButton = buttonClass({ variant: 'ghost', size: 'md', block: true })
 
 // "12:05"
 function countdown(ms: number) {
@@ -38,6 +42,8 @@ function countdown(ms: number) {
 // Updates via Realtime on the trip and its match, plus a catch-up on tab focus.
 export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip; userId: string }) {
   const toast = useToast()
+  const confirm = useConfirm()
+  const router = useRouter()
   const [supabase] = useState(() => createClient())
   const [trip, setTrip] = useState(initialTrip)
   const [match, setMatch] = useState<MyMatch | null>(null)
@@ -137,7 +143,13 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
   }
 
   const cancel = async () => {
-    if (!window.confirm('Stop looking for a co-rider?')) return
+    const ok = await confirm({
+      title: 'Cancel this ride?',
+      body: "We'll stop looking and withdraw any request you sent.",
+      confirmLabel: 'Cancel ride',
+      destructive: true,
+    })
+    if (!ok) return
     setBusy('cancel')
     if (await cancelSearch()) {
       toast('Search cancelled', 'success')
@@ -148,7 +160,12 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
 
   // Booking solo while still searching: stop the search first so we never match a rider who has left
   const bookSoloNow = async () => {
-    if (!window.confirm('Stop looking and book a cab on your own?')) return
+    const ok = await confirm({
+      title: 'Book a cab on your own?',
+      body: "We'll stop looking for a co-rider and open Uber.",
+      confirmLabel: 'Open Uber',
+    })
+    if (!ok) return
     setBusy('solo')
     if (await cancelSearch()) {
       window.location.href = uberSoloLink(trip)
@@ -156,6 +173,34 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
     }
     setBusy(null)
   }
+
+  const remove = async () => {
+    const ok = await confirm({
+      title: 'Delete this ride?',
+      body:
+        trip.status === 'open'
+          ? "We'll stop looking for a co-rider and remove it from your trips."
+          : "It'll be removed from your trips.",
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (!ok) return
+    setBusy('delete')
+    const { error } = await supabase.rpc('delete_trip', { p_trip_id: trip.id })
+    if (error) {
+      setBusy(null)
+      return toast(friendlyError(error))
+    }
+    toast('Ride deleted', 'success')
+    router.push('/')
+  }
+
+  const deleteButton = (
+    <button onClick={remove} disabled={busy !== null} className={`${quietButton} text-danger hover:text-danger`}>
+      <Icon.Trash className="size-4" />
+      {busy === 'delete' ? 'Deleting…' : 'Delete ride'}
+    </button>
+  )
 
   const respond = async (accept: boolean) => {
     if (!match) return
@@ -170,76 +215,60 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
   const readyFrom = Date.parse(trip.ready_from)
   const readyUntil = Date.parse(trip.ready_until)
 
-  // ---------- Looking ----------
+  // ---------- Looking: posted, choosing a co-rider ----------
   // (1 min of slack: a live trip starts "now" by the server's clock, which may be ahead of the phone's)
-  if (trip.status === 'open' && now < readyFrom - 60_000) {
-    return (
-      <Screen icon="🗓" title="Ride scheduled">
-        <p>
-          We&apos;ll look for co-riders leaving <strong>{trip.pickup_label}</strong> between{' '}
-          <strong>{formatTime(trip.ready_from)}</strong> and <strong>{formatTime(trip.ready_until)}</strong>
-          {dayPhrase(trip.ready_from)}.
-        </p>
-        <Route trip={trip} />
-        <div className="space-y-2.5 pt-2">
-          <Link href="/" className={primaryButton}>
-            Back to my trips
-          </Link>
-          <button onClick={cancel} disabled={busy !== null} className={secondaryButton}>
-            {busy === 'cancel' ? 'Cancelling...' : 'Cancel ride'}
-          </button>
-        </div>
-      </Screen>
-    )
-  }
-
   if (trip.status === 'open') {
+    const started = now >= readyFrom - 60_000
     const total = Math.max(1, readyUntil - readyFrom)
     const left = Math.max(0, readyUntil - now)
     return (
-      <div className="space-y-5">
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-center">
-          <div className="relative w-28 h-28 mx-auto mb-6 flex items-center justify-center">
-            <span className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
-            <span className="absolute inset-3 rounded-full bg-amber-400/40 animate-ping [animation-delay:500ms]" />
-            <span className="relative w-16 h-16 rounded-full bg-amber-400 flex items-center justify-center text-3xl shadow">
-              🚕
+      <div className="space-y-6">
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <span className="relative size-12 flex items-center justify-center">
+              {started && <span className="absolute inset-0 rounded-full bg-brand/20 animate-pulse-ring" />}
+              <span className="relative size-12 rounded-full bg-brand text-on-brand flex items-center justify-center">
+                {started ? <Icon.Car className="size-6" /> : <Icon.Calendar className="size-6" />}
+              </span>
             </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold">{started ? 'Your ride is posted' : 'Ride scheduled'}</p>
+              <p className="text-sm text-ink-2 tabular-nums">
+                {started ? (
+                  <>Looking until {formatTime(trip.ready_until)} · {countdown(left)} left</>
+                ) : (
+                  <>
+                    Ready {formatTime(trip.ready_from)} – {formatTime(trip.ready_until)}
+                    {dayPhrase(trip.ready_from)}
+                  </>
+                )}
+              </p>
+            </div>
           </div>
-          <h2 className="text-lg font-bold">Looking for a co-rider…</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-            Someone leaving with you, heading your way.
-          </p>
-
-          <div className="mt-5">
-            <div className="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+          {started && (
+            <div className="mt-4 h-1 rounded-full bg-surface-2 overflow-hidden">
               <div
-                className="h-full bg-amber-400 transition-[width] duration-1000 ease-linear"
+                className="h-full bg-ink transition-[width] duration-1000 ease-linear rounded-full"
                 style={{ width: `${(left / total) * 100}%` }}
               />
             </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-              Searching until {formatTime(trip.ready_until)} ·{' '}
-              <span className="font-semibold text-zinc-800 dark:text-zinc-200 tabular-nums">{countdown(left)}</span> left
-            </p>
-          </div>
+          )}
+        </Card>
 
-          <Route trip={trip} />
-        </div>
-
+        <MatchOptions trip={trip} userId={userId} onMatched={refetch} />
         <NearMissOffer trip={trip} onAccepted={refetch} />
+        <RouteCard trip={trip} />
 
-        <div className="space-y-2.5">
-          <button onClick={bookSoloNow} disabled={busy !== null} className={secondaryButton}>
-            {busy === 'solo' ? 'Opening Uber...' : 'Book solo on Uber instead'}
+        <div className="space-y-2">
+          {started && (
+            <button onClick={bookSoloNow} disabled={busy !== null} className={secondaryButton}>
+              {busy === 'solo' ? 'Opening Uber…' : 'Book solo on Uber instead'}
+            </button>
+          )}
+          <button onClick={cancel} disabled={busy !== null} className={`${quietButton} hover:text-danger`}>
+            {busy === 'cancel' ? 'Cancelling…' : 'Cancel ride'}
           </button>
-          <button
-            onClick={cancel}
-            disabled={busy !== null}
-            className="block w-full text-center text-sm font-semibold text-zinc-500 hover:text-red-600 dark:hover:text-red-400 py-2"
-          >
-            {busy === 'cancel' ? 'Cancelling...' : 'Cancel search'}
-          </button>
+          {!started && deleteButton}
         </div>
       </div>
     )
@@ -248,121 +277,161 @@ export default function TripStatus({ initialTrip, userId }: { initialTrip: Trip;
   // ---------- Matched ----------
   if (trip.status === 'matched') {
     if (!match) {
-      return <Screen icon="🎉" title="Co-rider found">Loading details…</Screen>
+      return (
+        <Screen icon={<Icon.Users className="size-7" />} tone="success" title="Co-rider found">
+          Loading details…
+        </Screen>
+      )
     }
 
     const m = match.matches
     const deal = (
-      <>
-        {match.estimated_share != null && m.saving_percent != null && (
-          <p>
-            You pay about <strong>{formatRupees(match.estimated_share)}</strong> · you both save{' '}
-            <strong>{Math.round(m.saving_percent)}%</strong>
-          </p>
+      <Card className="divide-y divide-line">
+        {m.saving_percent != null && (
+          <div className="p-4 flex items-center gap-3">
+            <span className="size-10 rounded-lg bg-success-soft text-success flex items-center justify-center">
+              <Icon.Rupee className="size-5" />
+            </span>
+            <p className="flex-1 text-xl font-bold tracking-tight">You may save up to {Math.round(m.saving_percent)}%</p>
+          </div>
         )}
         {m.meeting_point && (
-          <p>
-            {m.walker_id === userId
-              ? <>Walk <strong>{m.walk_m} m</strong> to meet at </>
-              : m.walker_id
-                ? <>Your co-rider walks to you. Meet at </>
-                : <>Meet at </>}
-            <strong>{m.meeting_point}</strong>
-          </p>
+          <div className="p-4 flex items-center gap-3">
+            <span className="size-10 rounded-xl bg-surface-2 text-ink-2 flex items-center justify-center">
+              {m.walker_id === userId ? <Icon.Walk className="size-5" /> : <Icon.MapPin className="size-5" />}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] text-ink-3">
+                {m.walker_id === userId
+                  ? `Walk ${m.walk_m} m to meet at`
+                  : m.walker_id
+                    ? 'Your co-rider walks to you. Meet at'
+                    : 'Meet at'}
+              </p>
+              <p className="font-semibold">{m.meeting_point}</p>
+            </div>
+          </div>
         )}
-      </>
+        <div className="p-4">
+          <RouteLine from={trip.pickup_label} to={trip.drop_label} compact />
+        </div>
+      </Card>
     )
 
     if (m.status === 'proposed' && match.accepted == null) {
       return (
-        <Screen icon="🎉" title="We found a co-rider!">
+        <div className="space-y-4">
+          <Screen icon={<Icon.Users className="size-7" />} tone="success" title="We found a co-rider!">
+            <p>
+              Reply within{' '}
+              <strong className="text-ink tabular-nums">{countdown(Date.parse(m.accept_deadline) - now)}</strong> or
+              the match lapses.
+            </p>
+          </Screen>
           {deal}
-          <p className="text-xs">
-            Reply within {countdown(Date.parse(m.accept_deadline) - now)} or the match lapses.
-          </p>
-          <Route trip={trip} />
-          <div className="grid grid-cols-2 gap-2.5 pt-2">
+          <div className="sticky bottom-0 -mx-4 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-canvas via-canvas to-canvas/0 grid grid-cols-[1fr_2fr] gap-2.5">
             <button onClick={() => respond(false)} disabled={busy !== null} className={secondaryButton}>
-              {busy === 'decline' ? '...' : 'Decline'}
+              {busy === 'decline' ? '…' : 'Decline'}
             </button>
             <button onClick={() => respond(true)} disabled={busy !== null} className={primaryButton}>
-              {busy === 'accept' ? '...' : 'Accept'}
+              {busy === 'accept' ? '…' : 'Accept co-rider'}
             </button>
           </div>
-        </Screen>
+        </div>
       )
     }
 
     if (m.status === 'proposed') {
       return (
-        <Screen icon="⏳" title="Waiting for your co-rider to accept…">
+        <div className="space-y-4">
+          <Screen icon={<Icon.Hourglass className="size-7" />} tone="brand" title="Waiting for your co-rider…">
+            <p>They have until {formatTime(m.accept_deadline)} to accept.</p>
+          </Screen>
           {deal}
-          <p className="text-xs">They have until {formatTime(m.accept_deadline)} to reply.</p>
-          <Route trip={trip} />
-        </Screen>
+        </div>
       )
     }
 
     return (
-      <Screen icon="✅" title="Co-rider found">
+      <div className="space-y-4">
+        <Screen icon={<Icon.Check className="size-7" />} tone="success" title="You're riding together">
+          <p>Chat and booking with your co-rider are coming soon.</p>
+        </Screen>
         {deal}
-        <Route trip={trip} />
-        <p className="text-xs pt-1">Chat and booking with your co-rider are coming soon.</p>
-      </Screen>
+      </div>
     )
   }
 
   // ---------- Finished ----------
   if (trip.status === 'expired') {
     return (
-      <Screen icon="🙁" title="No co-rider this time">
-        <p>Sorry, nobody was heading your way in time.</p>
-        <Route trip={trip} />
-        <div className="space-y-2.5 pt-2">
+      <div className="space-y-4">
+        <Screen icon={<Icon.Clock className="size-7" />} tone="neutral" title="No co-rider this time">
+          <p>Sorry, nobody was heading your way in time.</p>
+        </Screen>
+        <RouteCard trip={trip} />
+        <div className="space-y-2 pt-2">
           <a href={uberSoloLink(trip)} target="_blank" rel="noopener noreferrer" className={primaryButton}>
-            Book solo on Uber
+            Book solo on Uber <Icon.External className="size-4" />
           </a>
           <Link href="/" className={secondaryButton}>
             Back to my trips
           </Link>
+          {deleteButton}
         </div>
-      </Screen>
+      </div>
     )
   }
 
+  const completed = trip.status === 'completed'
   return (
-    <Screen icon={trip.status === 'completed' ? '🏁' : '✖️'} title={trip.status === 'completed' ? 'Trip completed' : 'Trip cancelled'}>
-      <Route trip={trip} />
-      <Link href="/" className={`${primaryButton} mt-2`}>
-        Back to my trips
-      </Link>
-    </Screen>
+    <div className="space-y-4">
+      <Screen
+        icon={completed ? <Icon.Check className="size-7" /> : <Icon.X className="size-7" />}
+        tone={completed ? 'success' : 'neutral'}
+        title={completed ? 'Trip completed' : 'Ride cancelled'}
+      />
+      <RouteCard trip={trip} />
+      <div className="space-y-2 pt-2">
+        <Link href="/" className={primaryButton}>
+          Back to my trips
+        </Link>
+        {deleteButton}
+      </div>
+    </div>
   )
 }
 
-function Screen({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+const screenTones = {
+  brand: 'bg-brand-soft text-brand-ink',
+  success: 'bg-success-soft text-success',
+  neutral: 'bg-surface-2 text-ink-2',
+}
+
+function Screen({
+  icon,
+  tone,
+  title,
+  children,
+}: {
+  icon: React.ReactNode
+  tone: keyof typeof screenTones
+  title: string
+  children?: React.ReactNode
+}) {
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200/80 dark:border-zinc-800 shadow-sm text-center">
-      <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-2xl mb-4">
-        {icon}
-      </div>
-      <h2 className="text-lg font-bold mb-2">{title}</h2>
-      <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">{children}</div>
+    <div className="text-center pt-4 pb-2">
+      <div className={`size-16 mx-auto rounded-full flex items-center justify-center mb-4 ${screenTones[tone]}`}>{icon}</div>
+      <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+      {children && <div className="mt-2 text-[15px] text-ink-2 leading-relaxed max-w-xs mx-auto space-y-2">{children}</div>}
     </div>
   )
 }
 
-function Route({ trip }: { trip: Trip }) {
+function RouteCard({ trip }: { trip: Trip }) {
   return (
-    <div className="mt-4 text-left rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 p-3.5 text-xs space-y-1.5">
-      <div className="truncate">
-        <span className="text-zinc-400">From</span>{' '}
-        <span className="font-medium text-zinc-800 dark:text-zinc-200">{trip.pickup_label}</span>
-      </div>
-      <div className="truncate">
-        <span className="text-zinc-400">To</span>{' '}
-        <span className="font-medium text-zinc-800 dark:text-zinc-200">{trip.drop_label}</span>
-      </div>
-    </div>
+    <Card className="p-4">
+      <RouteLine from={trip.pickup_label} to={trip.drop_label} compact />
+    </Card>
   )
 }

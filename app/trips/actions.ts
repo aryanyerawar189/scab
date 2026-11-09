@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { roadDistanceKm } from '@/utils/ola-maps'
 import { friendlyError } from '@/utils/friendly-error'
-import { WAIT_OPTIONS, type Trip } from '@/utils/trips'
+import { WAIT_OPTIONS, WALK_OPTIONS, type Trip } from '@/utils/trips'
 import type { TablesInsert } from '@/types/database.types'
 
 type BaseTripInput = {
@@ -18,6 +18,7 @@ type BaseTripInput = {
   dropLng: number
   dropPlaceId: string
   waitMinutes: number
+  maxWalkM: number // address pickups: how far they'll walk to meet (ignored for airports)
   womenOnly: boolean
 }
 
@@ -25,7 +26,6 @@ export type ScheduledTripInput = BaseTripInput & {
   startAt: string // ISO timestamp: landing time (airport) or leaving time (address)
   checkedBags: boolean // airport only
   isInternational: boolean // airport only
-  askBeforeConfirming: boolean
 }
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string }
@@ -59,6 +59,9 @@ function validateBase(input: BaseTripInput): string | null {
   if (km < 1) return 'Your drop is too close to the pickup.'
   if (km > MAX_TRIP_KM) return `SCab covers drops up to ${MAX_TRIP_KM} km from the pickup.`
   if (!(WAIT_OPTIONS as readonly number[]).includes(input.waitMinutes)) return 'Please pick how long you can wait.'
+  if (!input.terminalId && !(WALK_OPTIONS as readonly number[]).includes(input.maxWalkM)) {
+    return 'Please pick how far you can walk.'
+  }
   return null
 }
 
@@ -87,6 +90,7 @@ async function baseRow(userId: string, input: BaseTripInput): Promise<TripInsert
       { lat: input.dropLat, lng: input.dropLng }
     ),
     wait_minutes: input.waitMinutes,
+    max_walk_m: input.terminalId ? 0 : input.maxWalkM,
     women_only: Boolean(input.womenOnly),
   }
 }
@@ -147,7 +151,6 @@ export async function createScheduledTrip(input: ScheduledTripInput): Promise<Re
             is_international: Boolean(input.isInternational),
           }
         : { depart_at: startAt.toISOString() }),
-      auto_accept: !input.askBeforeConfirming,
     }))
     .select('id, terminal, pickup_label, ready_from, ready_until')
     .single()

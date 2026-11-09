@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { FieldLabel, inputClass } from './form-controls'
+import { Icon } from '../ui/icons'
+import { Spinner } from '../ui/kit'
 
 type Suggestion = {
   placeId: string
@@ -105,6 +107,7 @@ export default function PlaceSearch({
     <div className="relative">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <div className="relative">
+        <Icon.Search className="size-[18px] absolute left-4 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none" />
         <input
           id={id}
           type="text"
@@ -123,43 +126,48 @@ export default function PlaceSearch({
               setSearchError(null)
             }
           }}
-          className={`${inputClass} pr-10`}
+          className={`${inputClass} pl-11 pr-11`}
         />
         {(searching || loadingPlace) && (
-          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-zinc-300 border-t-amber-500 rounded-full animate-spin" />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-3 flex">
+            <Spinner />
+          </span>
         )}
         {value && !loadingPlace && (
           <button
             type="button"
             onClick={clear}
             aria-label={`Clear ${label.toLowerCase()}`}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            className="absolute right-2 top-1/2 -translate-y-1/2 size-8 rounded-full flex items-center justify-center text-ink-3 hover:text-ink hover:bg-surface-2"
           >
-            ✕
+            <Icon.X className="size-4" />
           </button>
         )}
       </div>
 
       {suggestions.length > 0 && (
-        <ul className="absolute z-20 left-0 right-0 mt-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-lg overflow-hidden max-h-72 overflow-y-auto">
+        <ul className="absolute z-30 left-0 right-0 mt-2 p-1.5 bg-surface border border-line rounded-lg shadow-pop max-h-80 overflow-y-auto animate-fade-in">
           {suggestions.map((s) => (
             <li key={s.placeId}>
               <button
                 type="button"
                 onClick={() => pickSuggestion(s)}
-                className="w-full text-left px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 border-b last:border-b-0 border-zinc-100 dark:border-zinc-800"
+                className="w-full flex items-center gap-3 text-left px-2.5 py-2.5 rounded-xl hover:bg-surface-2"
               >
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">{s.mainText}</div>
-                {s.secondaryText && (
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{s.secondaryText}</div>
-                )}
+                <span className="size-9 rounded-full bg-surface-2 text-ink-2 flex items-center justify-center">
+                  <Icon.MapPin className="size-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-ink truncate">{s.mainText}</span>
+                  {s.secondaryText && <span className="block text-xs text-ink-3 truncate">{s.secondaryText}</span>}
+                </span>
               </button>
             </li>
           ))}
         </ul>
       )}
 
-      {searchError && !searching && <p className="text-xs text-red-600 dark:text-red-400 mt-1.5">{searchError}</p>}
+      {searchError && !searching && <p className="text-[13px] font-medium text-danger mt-2">{searchError}</p>}
     </div>
   )
 }

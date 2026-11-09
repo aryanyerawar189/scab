@@ -86,3 +86,21 @@ export async function roadDistanceKm(from: LatLng, to: LatLng): Promise<number |
     return null
   }
 }
+
+// Road km from one point to many, in one call (same order as `to`; null where unknown)
+export async function roadDistancesKm(from: LatLng, to: LatLng[]): Promise<(number | null)[]> {
+  if (to.length === 0) return []
+  try {
+    const data = await olaGet('/routing/v1/distanceMatrix', {
+      origins: `${from.lat},${from.lng}`,
+      destinations: to.map((p) => `${p.lat},${p.lng}`).join('|'),
+    })
+    const elements: { distance?: number }[] = data.rows?.[0]?.elements ?? []
+    return to.map((_, i) => {
+      const meters = elements[i]?.distance
+      return typeof meters === 'number' && meters > 0 ? Math.round(meters / 10) / 100 : null
+    })
+  } catch {
+    return to.map(() => null)
+  }
+}

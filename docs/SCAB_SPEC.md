@@ -1,4 +1,4 @@
-# SCab – MVP Product Spec (v4)
+# SCab – MVP Product Spec (v5)
 
 **One line:** SCab matches two people leaving the same place at the same time and heading the same way, so they share one cab and each pay about half the fare.
 
@@ -6,6 +6,8 @@
 
 **Principle:** SCab must never make a trip worse than booking alone. A rider never waits longer than they chose, and if no co-rider is found they can book solo with one tap.
 
+> v5 changes from v4: riders **choose** their co-rider from a list of options (no automatic matching, no auto-accept), one request at a time; no rupee minimum, savings shown only as a percentage; detour limited in road km; each rider sets how far they will walk.
+>
 > v4 changes from v3: any Indian airport (not just Bangalore), terminals stored as data, address pickups, per-region fares and currency, walking to a shared meeting point.
 
 ---
@@ -43,7 +45,7 @@ Airports and terminals are data, not code (§9.2). An airport SCab doesn't know 
 ### 2.2 Address pickup
 Anything else: a home, office, mall, station. The pickup is the exact point the rider picked.
 
-Two riders can share only if their pickups are **within 2 km** of each other (§4.1). The cab stops **once**, at the pickup of **whoever posted first**; the other rider walks there.
+Each rider says **how far they will walk** to meet (No / 250 m / 500 m / 1 km / 2 km, default 500 m). Two riders can share if their pickups are within the walking distance of whichever of them walks. The cab stops **once**: the **later poster walks** to the earlier poster's pickup if their limit allows, otherwise the earlier poster walks.
 
 ---
 
@@ -71,10 +73,10 @@ Two riders can share only if their windows **overlap by at least 5 minutes**. Li
 | From | Address search. Airport → pick the terminal if there are several |
 | To | Address search, biased towards the pickup |
 | Wait | Not asked. "We'll look for up to **15 min** · change" (10 / 15 / 20 / 30) |
+| How far can you walk? | Address pickups only. No / 250 m / 500 m / 1 km / 2 km (default 500 m) |
 | Women only | Shown **only** to female accounts |
 
-- **Auto-accept is ON**: a good match is confirmed instantly.
-- After posting, the rider sees the **searching screen** (§5).
+Button: **Post ride & see co-riders**. The ride is posted straight away and the rider sees the options screen (§5).
 
 ### 4.2 Scheduled – "Schedule a ride"
 | Field | Airport pickup | Address pickup |
@@ -85,71 +87,71 @@ Two riders can share only if their windows **overlap by at least 5 minutes**. Li
 | International flight | Toggle | — |
 | To | Address search | Address search |
 | How long can you wait? | 10 / 15 / 20 / 30 min (default 20) | same |
+| How far can you walk? | — | No / 250 m / 500 m / 1 km / 2 km (default 500 m) |
 | Women only | Female accounts only | same |
-| Ask me before confirming a co-rider | Default **ON** (one-tap Accept). OFF = auto-accept | same |
 
 - Up to **30 days** ahead.
-- After posting: *"We'll look for co-riders leaving Kempegowda International Airport Bengaluru, Terminal 1 between 8:15 and 8:35 PM."*
+- After posting, the rider goes to the ride's screen (§5) and can see options days ahead.
 
 A rider can't have two active trips with overlapping windows.
 
 ---
 
-## 5. The searching screen
+## 5. The ride screen: choosing a co-rider
 
-Shown right after a live request, and when opening any trip.
+**A ride must be posted to see options.** Options only show riders who have also posted. When nobody fits yet, the rider sees *"No riders yet. When someone heading your way posts a ride, they'll show up here."* and the list fills in as people post.
 
-- **Looking:** a pulsing animation, *"Looking for a co-rider…"*, and a countdown bar: *"Searching until 8:35 PM · 12:05 left"*.
+- Top: *"Your ride is posted · Looking until 8:35 PM · 12:05 left"* (or *"Ride scheduled · Ready 8:15 – 8:35 PM tomorrow"*).
+- **Riders heading your way**, best saving first. Each option shows only:
+  - **"You may save up to 47%"** (never a rupee amount: fares are estimates until booked)
+  - how far their drop is from yours, and the detour in km
+  - when they're ready
+  - who walks and how far
+  - No name, photo or address before a match.
+- **Send request** on any option. **One request at a time**; the rider can **Withdraw** it to ask someone else.
+- Requests received appear at the top with **Accept / Decline** and a reply countdown. If both riders ask each other, it's a match at once.
 - **Near-miss offer** when available (§6.5).
-- **"Book solo on Uber instead"** is always available. It **stops the search first**, so SCab never matches a rider who has already left.
-- **Cancel search.**
-- Updates live: switches to the match screen the moment a co-rider is found, or to *"No co-rider this time"* when the window ends.
-- A scheduled trip whose window hasn't started shows *"Ride scheduled"* with the window instead.
+- **"Book solo on Uber instead"** (once the window has started) and **Cancel ride**.
+- Updates live; the home screen shows *"A rider wants to share · Reply"* on that ride.
 
 ---
 
 ## 6. Matching
 
-Runs automatically: the moment a trip is posted, whenever something changes (delay, "I'm out" / "I'm ready", longer wait, a match ending), and every minute in the background.
+Nothing is matched automatically. SCab only decides **who is shown as an option**; riders decide who they ride with.
 
-### 6.1 A pair matches only if **all** of these hold
-1. **Same pickup:**
-   - airport: the **same terminal**; or
-   - address: both are address pickups, in the same region, with pickups **≤ 2 km** apart.
-   - An airport pickup never matches an address pickup.
-2. Ready windows overlap by **≥ 5 min**
-3. **Each rider saves ≥ 30% and ≥ ₹200** compared with riding alone
-4. **Neither rider loses more than 15 min**: the farther rider's extra time for the second drop, plus walking time for whoever walks to the meeting point
-5. Women-only respected: if either trip is women-only, both riders are female
-6. Never re-pair two people whose earlier match was **declined, cancelled or timed out**
+### 6.1 Hard rules: who is shown as an option
+1. **Same pickup:** the same terminal; or both address pickups in the same region, within the walking distance of whoever walks (§2.2). An airport pickup never matches an address pickup.
+2. Ready windows overlap by **≥ 5 min**.
+3. **Detour ≤ 5 km of road**: the extra road km the cab drives to drop the second rider. Road km between the two drops comes from Ola Maps; each rider's own trip too.
+4. **Saving > 0%** for both: SCab never shows an option worse than riding alone. (No rupee minimum.)
+5. Women-only respected: if either trip is women-only, both riders are female.
+6. Never show two people to each other again after a **declined** request, or a declined / cancelled / timed-out match.
 
-> **Known interaction:** walking 2 km takes ~27 min at 4.5 km/h, which is over the 15-min limit in rule 4, so in practice address pickups match up to ~1.1 km apart. The ₹200 minimum (rule 3) also rules out many short city trips (e.g. 41% saving on a ₹444 solo fare is only ₹182). Both are settings (§9.1) and under review.
+### 6.2 Order of options
+**Biggest saving first**, then the smaller detour. Up to 10 shown.
 
-### 6.2 Picking the best pair
-Among valid candidates: the **fewest extra minutes**, then the **biggest window overlap**.
+### 6.3 Estimates
+Fares come from the **region** (§9.2). For India: base **₹150**, **₹24/km**. They are used only to work out the saving **percentage**.
+- Solo fare ≈ base + per-km × road km of the rider's own trip.
+- Shared fare ≈ base + per-km × (road km from the meeting point to the farther drop + detour km).
+- Detour km = (meeting point → nearer drop) + (nearer drop → farther drop) − (meeting point → farther drop), all in road km.
+- Saving % = 1 − shared ÷ (both solo fares). Both riders save the same % (§8.6).
 
-### 6.3 Estimates used for matching
-Fares come from the **region** (§9.2). For India: base **₹150**, **₹24/km**.
-- Solo fare ≈ base + per-km × road km from the rider's **own** pickup (road km ≈ straight line × 1.3, or the app's Ola Maps road distance).
-- Shared fare ≈ base + per-km × (road km from the **meeting point** to the farther drop + detour km).
-- Extra minutes for the farther rider ≈ detour km at 20 km/h + 3 min for the stop.
-- Walking minutes ≈ walking distance at 4.5 km/h.
-
-> Bengaluru T1 → Koramangala + HSR: both save ≈ 47%, extra ≈ 7 min → **match**.
-> Koramangala (two pickups 400 m apart) → Whitefield + Hoodi: both save ≈ 46%, the later poster walks 400 m → **match**.
-
-### 6.4 Confirming a match
-- Riders with auto-accept are accepted automatically. If both are, the match is **confirmed instantly**.
-- Otherwise the rider sees **Accept / Decline** with the deadline. Deadline: **2 hours**, or the end of the earlier ready window if that's sooner.
-- **Decline** → both riders go back to "looking" (never re-paired with each other).
-- **No reply by the deadline** → same as decline (timed out).
+### 6.4 Requests
+- **Send request** → the other rider sees it with **Accept / Decline**.
+- Reply time: **5 min** if either ride is live, **6 hours** between two scheduled rides, and never past either ride's window.
+- **Accept** → re-checks the rules, then the match is **confirmed** straight away. Every other request on both rides closes.
+- **Decline** → never shown to each other again. **No reply in time** → the request expires (they can ask again).
+- A request closes by itself if either ride matches someone else, is cancelled, expires, or stops fitting (e.g. after a delay).
+- There is **no auto-accept**: every match is two people saying yes.
 
 ### 6.5 Near-miss offers
-If a rider has no match but someone compatible will be ready **shortly after** their wait ends (up to 20 min), they see:
+If someone compatible will be ready **shortly after** a rider's wait ends (up to 20 min), they see:
 
-> *"A rider going 2 km from your drop will be out at 8:47 PM. Wait 12 more min and pay ~₹440 instead of ₹880?"*
+> *"Wait 12 more min and you may save up to 47%. A rider going 2 km from your drop will be ready at 8:47 PM."*
 
-Tapping **Wait** extends their wait (total wait max 60 min) and matching runs again. The other rider's name and address are **not** shown before a match.
+Tapping **Wait** extends their wait (total wait max 60 min); that rider then appears in the options.
 
 ---
 
@@ -162,9 +164,7 @@ Tapping **Wait** extends their wait (total wait max 60 min) and matching runs ag
 | **I'm out** | Airport | From landing time | Window becomes now → now + wait. |
 | **I'm ready** | Address | From 1 h before "Leave at" | Window becomes now → now + wait. |
 
-If a change breaks a match:
-- **Not yet confirmed** → the match ends automatically ("window changed"; the two *can* be re-paired later) and SCab looks again.
-- **Confirmed** → nothing ends automatically. Both see: *"Riya will be out at 8:50, 15 min after your wait ends."* Options: **Wait for her** (extends wait) or **Find someone else**.
+If a change breaks a pending request, the request closes and the rider sees the updated options. A **confirmed** match never ends automatically. Both see: *"Riya will be out at 8:50, 15 min after your wait ends."* Options: **Wait for her** (extends wait) or **Find someone else**.
 
 ---
 
@@ -173,7 +173,7 @@ If a change breaks a match:
 ### 8.1 What riders see
 - The **meeting point**: the terminal's cab pickup area, or the first poster's pickup address.
 - Who walks: *"Walk 400 m to meet at Forum Mall, Koramangala"* / *"Your co-rider walks to you."*
-- Estimated share and saving: *"You pay about ₹487 · you both save 47%"*.
+- Saving: *"You may save up to 47%"* (a percentage only).
 - Once confirmed: **Chat** and **Call** unlock. Phone number and UPI ID become visible to the co-rider only now.
 - The **booker**, the co-rider's landing time / stage, and drop area.
 
@@ -194,7 +194,7 @@ When the window ends with no match, the trip becomes **expired** and the rider s
 
 ### 8.5 Fare confirmation
 - The co-rider sees **"Riya booked for ₹900. Looks right?"** → **✓ Confirm** / **✗ Doesn't match**.
-- **Doesn't match** → booker uploads a receipt screenshot; the match is flagged.
+- **Doesn't match** → the match is flagged and the two riders sort it out in chat. (No receipt upload: too much effort for riders.)
 - If the booker later changes the fare, the co-rider must confirm again.
 
 ### 8.6 Fare split: everyone saves the same %
@@ -213,16 +213,18 @@ After payment: 👍 or 👎 for the co-rider (one tap, optional).
 ### 8.9 Leaving a match
 | Action | When | Effect |
 |---|---|---|
-| **Find someone else** | Before booking | Both go back to "looking"; never re-paired |
+| **Find someone else** | Before booking | Both go back to choosing from options; never shown to each other again |
 | **Cancel trip** | Any time before completion | Your trip ends; co-rider goes back to "looking". After booking it counts as a **late cancellation** on your profile |
 
 ### 8.10 Statuses
 
-**Trip:** `open` (looking) → `matched` → `completed`, or `cancelled` / `expired`
+**Trip:** `open` (posted, choosing) → `matched` → `completed`, or `cancelled` / `expired`
+
+**Request:** `pending` → `accepted` / `declined` / `withdrawn` / `expired`, or `closed` (a ride matched, ended or stopped fitting)
 
 **Trip stage (scheduled):** `scheduled` → `landed` (airport only) → `out` ("I'm out" / "I'm ready")
 
-**Match:** `proposed` → `confirmed` → `booked` → `completed`, or `cancelled`
+**Match:** `confirmed` → `booked` → `completed`, or `cancelled` (`proposed` only on matches from before v5)
 
 **Why a match was cancelled:** `declined`, `timeout`, `cancelled`, `window_changed`, `expired` (confirmed but never booked, closed 3 h after the windows ended)
 
@@ -237,21 +239,20 @@ After payment: 👍 or 👎 for the co-rider (one tap, optional).
 | Setting | Default |
 |---|---|
 | min_overlap_minutes | 5 |
-| max_extra_minutes | 15 |
-| min_saving_percent | 30 |
-| road_factor | 1.3 |
-| city_speed_kmph / stop_minutes | 20 / 3 |
-| max_pickup_walk_m | 2000 |
-| walk_speed_kmph | 4.5 |
+| max_detour_km | 5 |
+| min_saving_percent | 0 (saving must also be > 0) |
+| max_pickup_walk_m | 2000 (upper limit for a rider's walking choice) |
+| request_minutes_live / request_minutes_scheduled | 5 / 360 |
+| road_factor | 1.3 (when Ola Maps has no road distance) |
+| city_speed_kmph / stop_minutes | 20 / 3 (only to store a rough extra-minutes figure) |
 | exit_minutes_cabin / checked / international_extra | 15 / 35 / 30 |
-| accept_minutes | 120 |
 | near_miss_max_minutes | 20 |
 
 ### 9.2 Places and money
 
 | Table | What | Today |
 |---|---|---|
-| `regions` | Where SCab runs: country, currency, timezone, rough boundary, **fare_base**, **fare_per_km**, **min_saving_amount** | India: INR, Asia/Kolkata, ₹150 + ₹24/km, min saving ₹200 |
+| `regions` | Where SCab runs: country, currency, timezone, rough boundary, **fare_base**, **fare_per_km** | India: INR, Asia/Kolkata, ₹150 + ₹24/km |
 | `airports` | Every airport: IATA code, name, city, location, active | 116 Indian airports with scheduled flights (OurAirports) |
 | `terminals` | Each airport's terminals: name, location, **meeting point**, active | 126. Several terminals at AMD, BLR, BOM, COK, DEL, JAI, MAA, TRV; one (`MAIN`) elsewhere |
 
@@ -267,4 +268,4 @@ Turning an airport, terminal or region off (`active = false`) stops new trips th
 - 3 riders (SUV)
 - Saved places
 - Verified work-email badge and same-company preference
-- Push / WhatsApp notifications
+- Push / WhatsApp notifications (needed so riders see requests without keeping the app open)

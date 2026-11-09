@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/navigation'
+import { Icon } from '../ui/icons'
+import { Spinner, buttonClass } from '../ui/kit'
 
 export default function LoginForm() {
   const [loading, setLoading] = useState(false)
@@ -34,50 +36,60 @@ export default function LoginForm() {
     }
   }
 
-  return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col justify-center items-center px-4 py-8">
-      <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-sm border border-zinc-200/80 dark:border-zinc-800 flex flex-col items-center text-center">
-        {/* SCab Brand Icon */}
-        <div className="w-16 h-16 rounded-2xl bg-amber-400 text-zinc-950 flex items-center justify-center font-black text-2xl mb-6 shadow-sm">
-          🚕
-        </div>
+  const points = [
+    { icon: <Icon.Plane className="size-[18px]" />, text: 'Every Indian airport, terminal by terminal' },
+    { icon: <Icon.Users className="size-[18px]" />, text: 'Matched with someone leaving when you do' },
+    { icon: <Icon.Rupee className="size-[18px]" />, text: 'Each pays about half the fare' },
+  ]
 
-        {/* Brand Name & Tagline */}
-        <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
-          SCab
+  return (
+    <main className="min-h-dvh bg-black text-white">
+      <div className="min-h-dvh flex flex-col max-w-md mx-auto w-full px-6 pt-[max(3rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <span className="font-bold text-3xl tracking-tight">SCab</span>
+
+      <div className="flex-1 flex flex-col justify-center py-10">
+        <h1 className="text-[44px] leading-[1.05] font-bold tracking-tight">
+          Share the cab.
+          <br />
+          Split the fare.
         </h1>
-        <p className="text-base text-zinc-600 dark:text-zinc-400 font-medium mb-6">
-          Share a cab, split the fare
+        <p className="mt-4 text-lg text-[#afafaf] leading-relaxed">
+          SCab pairs you with someone leaving the same place at the same time, heading your way.
         </p>
 
-        {/* Where it works */}
-        <div className="w-full bg-zinc-100 dark:bg-zinc-800/60 rounded-xl px-3 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-8 flex items-center justify-center gap-1.5">
-          <span>✈️ Airports</span>
-          <span>·</span>
-          <span>📍 Anywhere in India</span>
+        <ul className="mt-8 space-y-3.5">
+          {points.map((p) => (
+            <li key={p.text} className="flex items-center gap-4 text-base text-white">
+              <span className="size-10 rounded-full bg-[#282828] text-white flex items-center justify-center">
+                {p.icon}
+              </span>
+              {p.text}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {(authError || errorMessage) && (
+        <div role="alert" className="mb-4 p-3.5 rounded-lg bg-[#3a120d] text-[#ff5a45] text-sm font-medium flex items-center gap-2">
+          <Icon.Alert className="size-4" />
+          {errorMessage || 'Sign-in failed. Please try again.'}
         </div>
+      )}
 
-        {/* Error Feedback if any */}
-        {(authError || errorMessage) && (
-          <div className="w-full mb-6 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 text-xs">
-            {errorMessage || 'Authentication failed. Please try again.'}
-          </div>
-        )}
-
-        {/* Google Sign-in Button */}
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-50 active:bg-zinc-100 text-zinc-800 font-medium py-3.5 px-4 rounded-2xl border border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-750 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-800 dark:border-zinc-600 dark:border-t-zinc-200 rounded-full animate-spin" />
-              <span>Connecting to Google...</span>
-            </div>
-          ) : (
-            <>
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+      <button
+        onClick={handleGoogleLogin}
+        disabled={loading}
+        className={buttonClass({ size: 'lg', block: true, className: '!bg-white !text-black hover:!bg-[#e2e2e2]' })}
+      >
+        {loading ? (
+          <>
+            <Spinner />
+            <span>Connecting to Google…</span>
+          </>
+        ) : (
+          <>
+            <span className="size-7 rounded-full bg-white flex items-center justify-center">
+              <svg className="size-4" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -95,14 +107,12 @@ export default function LoginForm() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>Continue with Google</span>
-            </>
-          )}
-        </button>
-
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-6 leading-relaxed">
-          Matches co-riders leaving from the same place, heading the same way.
-        </p>
+            </span>
+            <span>Continue with Google</span>
+          </>
+        )}
+      </button>
+      <p className="mt-4 text-center text-xs text-[#757575]">Available across India</p>
       </div>
     </main>
   )
